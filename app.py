@@ -34,35 +34,73 @@ PAGES = [
     "Regresi Berganda",
 ]
 
-REGRESSION_TARGETS = [
-    {"label": "pH - Portabel 1", "parameter": "pH", "alat": "Portabel 1", "target": "pH_portabel_1", "unit": "pH"},
-    {"label": "pH - Portabel 2", "parameter": "pH", "alat": "Portabel 2", "target": "pH_portabel_2", "unit": "pH"},
-    {"label": "N - Portabel 1", "parameter": "N", "alat": "Portabel 1", "target": "N_portabel_1", "unit": "ppm"},
-    {"label": "N - Portabel 2", "parameter": "N", "alat": "Portabel 2", "target": "N_portabel_2", "unit": "ppm"},
-    {"label": "P - Portabel 1", "parameter": "P", "alat": "Portabel 1", "target": "P_portabel_1", "unit": "ppm"},
-    {"label": "P - Portabel 2", "parameter": "P", "alat": "Portabel 2", "target": "P_portabel_2", "unit": "ppm"},
-    {"label": "K - Portabel 1", "parameter": "K", "alat": "Portabel 1", "target": "K_portabel_1", "unit": "ppm"},
-    {"label": "K - Portabel 2", "parameter": "K", "alat": "Portabel 2", "target": "K_portabel_2", "unit": "ppm"},
+LAB_REGRESSION_TARGETS = [
     {
-        "label": "Kelembapan - Portabel 2",
+        "label": "pH Lab",
+        "parameter": "pH",
+        "target": "pH_lab",
+        "unit": "pH",
+        "default_predictors": ["pH_portabel_1", "pH_portabel_2"],
+    },
+    {
+        "label": "N-NH4 Lab",
+        "parameter": "N-NH4",
+        "target": "NH4_N_lab",
+        "unit": "ppm",
+        "default_predictors": ["N_portabel_1", "N_portabel_2"],
+    },
+    {
+        "label": "N-NO3 Lab",
+        "parameter": "N-NO3",
+        "target": "NO3_N_lab",
+        "unit": "ppm",
+        "default_predictors": ["N_portabel_1", "N_portabel_2"],
+    },
+    {
+        "label": "P Lab",
+        "parameter": "P",
+        "target": "P_lab",
+        "unit": "ppm",
+        "default_predictors": ["P_portabel_1", "P_portabel_2"],
+    },
+    {
+        "label": "K Lab",
+        "parameter": "K",
+        "target": "K_lab",
+        "unit": "ppm",
+        "default_predictors": ["K_portabel_1", "K_portabel_2"],
+    },
+    {
+        "label": "Kelembapan Lab",
         "parameter": "Kelembapan",
-        "alat": "Portabel 2",
-        "target": "kadar_air_portabel_pct",
+        "target": "kadar_air_lab_pct",
         "unit": "%",
+        "default_predictors": ["kadar_air_portabel_pct"],
     },
 ]
 
-NUMERIC_PREDICTORS = [
-    "pH_lab",
-    "NH4_N_lab",
-    "NO3_N_lab",
-    "P_lab",
-    "K_lab",
-    "kadar_air_lab_pct",
+PORTABLE_PREDICTORS = [
+    "pH_portabel_1",
+    "pH_portabel_2",
+    "N_portabel_1",
+    "N_portabel_2",
+    "P_portabel_1",
+    "P_portabel_2",
+    "K_portabel_1",
+    "K_portabel_2",
+    "kadar_air_portabel_pct",
+]
+
+SOIL_NUMERIC_PREDICTORS = [
     "pasir_pct",
     "debu_pct",
     "liat_pct",
     "C_organik_pct",
+]
+
+NUMERIC_PREDICTORS = [
+    *PORTABLE_PREDICTORS,
+    *SOIL_NUMERIC_PREDICTORS,
 ]
 
 CATEGORY_PREDICTORS = [
@@ -499,7 +537,7 @@ def add_regression_line(fig, df: pd.DataFrame, x_col: str, y_col: str, name: str
         x=x_line,
         y=y_line,
         mode="lines",
-        name=f"{name} (R2={fit['r2']:.3f})",
+        name=f"{name} (R²={fit['r2']:.3f})",
         line={"color": "#111827", "dash": "dash", "width": 2},
     )
 
@@ -592,10 +630,107 @@ def recommendation_matrix(stats_df: pd.DataFrame) -> pd.DataFrame:
     return matrix.sort_values(["parameter", "skor_kelayakan"], ascending=[True, False])
 
 
+SUBSCRIPT_TRANSLATION = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
+
+ACADEMIC_COLUMN_LABELS = {
+    "parameter": "Parameter",
+    "alat": "Alat",
+    "n": "n (jumlah sampel)",
+    "bias": "ē (bias)",
+    "MAE": "MAE (galat absolut rata-rata)",
+    "RMSE": "RMSE (akar rerata kuadrat galat)",
+    "MAPE_pct": "MAPE (%)",
+    "nRMSE_range_pct": "nRMSE (%)",
+    "Pearson_r": "r (Pearson)",
+    "Pearson_p": "p_r (p-value Pearson)",
+    "Spearman_rho": "ρ (Spearman)",
+    "Spearman_p": "p_ρ (p-value Spearman)",
+    "R2_portable_to_lab": "R² (kalibrasi ŷ_lab terhadap x_portabel)",
+    "intercept_portable_to_lab": "β₀ (intersep)",
+    "slope_portable_to_lab": "β₁ (koefisien x_portabel)",
+    "persamaan_regresi_linear": "ŷ_lab = β₀ + β₁x (model regresi linear)",
+    "skor_kelayakan": "Skor kelayakan",
+    "rekomendasi": "Rekomendasi",
+    "persamaan_kalibrasi_lab": "ŷ_lab = β₀ + β₁x (persamaan kalibrasi)",
+    "Y": "Y (variabel respons)",
+    "jumlah_prediktor": "p (jumlah prediktor)",
+    "R2": "R² (koefisien determinasi)",
+    "Adj_R2": "R²_adj (koefisien determinasi terkoreksi)",
+    "catatan": "Catatan",
+    "notasi": "βⱼ (notasi koefisien)",
+    "variabel_model": "Xⱼ (notasi prediktor)",
+    "suku_model": "βⱼXⱼ (suku model)",
+    "prediktor": "Prediktor asli",
+    "koefisien": "β̂ⱼ (estimasi koefisien)",
+    "prediksi": "Ŷ (prediksi model)",
+    "residual": "e = Y - Ŷ (residual)",
+    "abs_residual": "|e| (galat absolut)",
+}
+
+LINEAR_REGRESSION_LATEX = r"\hat{y}_{lab} = \beta_0 + \beta_1 x_{portabel} + \varepsilon"
+MULTIPLE_REGRESSION_LATEX = r"\hat{Y} = \beta_0 + \beta_1X_1 + \beta_2X_2 + \cdots + \beta_pX_p + \varepsilon"
+
+
+def academic_subscript(value: int | str) -> str:
+    return str(value).translate(SUBSCRIPT_TRANSLATION)
+
+
+def beta_symbol(index: int) -> str:
+    return f"β{academic_subscript(index)}"
+
+
+def x_symbol(index: int) -> str:
+    return f"X{academic_subscript(index)}"
+
+
+def linear_regression_equation(intercept: float, slope: float) -> str:
+    if pd.isna(intercept) or pd.isna(slope):
+        return "Tidak cukup data"
+    sign = "+" if slope >= 0 else "-"
+    return f"ŷ_lab = β₀ + β₁x_portabel = {intercept:.3f} {sign} {abs(slope):.3f} × x_portabel"
+
+
+def multiple_regression_formula(predictor_count: int) -> str:
+    if predictor_count <= 0:
+        return f"Ŷ = {beta_symbol(0)} + ε"
+    if predictor_count <= 3:
+        terms = " + ".join(f"{beta_symbol(index)}{x_symbol(index)}" for index in range(1, predictor_count + 1))
+    else:
+        first_terms = " + ".join(f"{beta_symbol(index)}{x_symbol(index)}" for index in range(1, 4))
+        terms = f"{first_terms} + ... + {beta_symbol(predictor_count)}{x_symbol(predictor_count)}"
+    return f"Ŷ = {beta_symbol(0)} + {terms} + ε"
+
+
+def coefficient_table_from_model(predictors: Iterable[str], coefficients: Iterable[float], intercept: float) -> pd.DataFrame:
+    records = []
+    for index, (predictor, coefficient) in enumerate(zip(predictors, coefficients), start=1):
+        beta = beta_symbol(index)
+        variable = x_symbol(index)
+        records.append(
+            {
+                "notasi": beta,
+                "variabel_model": variable,
+                "suku_model": f"{beta}{variable}",
+                "prediktor": predictor,
+                "koefisien": coefficient,
+            }
+        )
+    records.append(
+        {
+            "notasi": beta_symbol(0),
+            "variabel_model": "",
+            "suku_model": beta_symbol(0),
+            "prediktor": "intercept",
+            "koefisien": intercept,
+        }
+    )
+    return pd.DataFrame(records)
+
+
 def calibration_text(intercept: float, slope: float) -> str:
     if pd.isna(intercept) or pd.isna(slope):
         return "Tidak cukup data"
-    return f"Lab estimasi = {intercept:.3f} + {slope:.3f} x nilai portabel"
+    return f"{linear_regression_equation(intercept, slope)} (persamaan kalibrasi linear)"
 
 
 def format_p(value: float | None) -> str:
@@ -719,10 +854,17 @@ def multiple_regression(
     adj_r2 = 1 - (1 - r2) * (len(y) - 1) / max(1, len(y) - x.shape[1] - 1)
     rmse = np.sqrt(mean_squared_error(y, pred)) if mean_squared_error is not None else np.nan
     mae = mean_absolute_error(y, pred) if mean_absolute_error is not None else np.nan
-    coef = pd.DataFrame({"prediktor": x.columns, "koefisien": model.coef_})
-    coef.loc[len(coef)] = {"prediktor": "intercept", "koefisien": model.intercept_}
-    summary = {"n": len(y), "jumlah_prediktor": x.shape[1], "R2": r2, "Adj_R2": adj_r2, "MAE": mae, "RMSE": rmse}
-    return coef.sort_values("koefisien", key=lambda s: s.abs(), ascending=False), summary
+    coef = coefficient_table_from_model(x.columns, model.coef_, model.intercept_)
+    summary = {
+        "n": len(y),
+        "jumlah_prediktor": x.shape[1],
+        "R2": r2,
+        "Adj_R2": adj_r2,
+        "MAE": mae,
+        "RMSE": rmse,
+        "formula": multiple_regression_formula(x.shape[1]),
+    }
+    return coef.sort_values("koefisien", key=lambda s: s.abs(), ascending=False).reset_index(drop=True), summary
 
 
 def regression_with_prediction(
@@ -782,8 +924,7 @@ def regression_with_prediction(
     rmse = np.sqrt(mean_squared_error(y, y_pred)) if mean_squared_error is not None else np.nan
     mae = mean_absolute_error(y, y_pred) if mean_absolute_error is not None else np.nan
 
-    coef = pd.DataFrame({"prediktor": x.columns, "koefisien": model.coef_})
-    coef.loc[len(coef)] = {"prediktor": "intercept", "koefisien": model.intercept_}
+    coef = coefficient_table_from_model(x.columns, model.coef_, model.intercept_)
     coef = coef.sort_values("koefisien", key=lambda s: s.abs(), ascending=False).reset_index(drop=True)
     prediction = model_data[["SPT", "unit_lahan", "vegetasi", target_col]].copy()
     prediction["prediksi"] = y_pred
@@ -796,7 +937,7 @@ def regression_with_prediction(
         "Adj_R2": adj_r2,
         "MAE": mae,
         "RMSE": rmse,
-        "formula": "Y portabel = intercept + sum(koefisien x prediktor)",
+        "formula": multiple_regression_formula(x.shape[1]),
     }
     return coef, summary, prediction
 
@@ -814,6 +955,33 @@ def filter_errors(errors: pd.DataFrame, parameters: list[str], devices: list[str
 
 def clean_table_for_display(df: pd.DataFrame) -> pd.DataFrame:
     return df.replace([np.inf, -np.inf], np.nan)
+
+
+def academic_display_table(
+    df: pd.DataFrame,
+    columns: list[str] | None = None,
+    *,
+    include_linear_equation: bool = False,
+) -> pd.DataFrame:
+    selected = df.copy() if columns is None else df[[col for col in columns if col in df.columns]].copy()
+    if (
+        include_linear_equation
+        and "intercept_portable_to_lab" in selected.columns
+        and "slope_portable_to_lab" in selected.columns
+    ):
+        selected["persamaan_regresi_linear"] = selected.apply(
+            lambda row: linear_regression_equation(
+                row["intercept_portable_to_lab"],
+                row["slope_portable_to_lab"],
+            ),
+            axis=1,
+        )
+    return clean_table_for_display(selected).rename(columns=ACADEMIC_COLUMN_LABELS)
+
+
+def coefficient_display_table(coef: pd.DataFrame) -> pd.DataFrame:
+    display_cols = ["notasi", "variabel_model", "suku_model", "prediktor", "koefisien"]
+    return academic_display_table(coef, display_cols)
 
 
 def stable_selectbox(container, label: str, options: list[str], key: str, index: int = 0):
@@ -919,7 +1087,7 @@ def render_agreement_overview_charts(stats_df: pd.DataFrame) -> None:
         y="Pearson_r",
         color="parameter",
         title="Korelasi Pearson per Parameter-Alat",
-        labels={"label": "", "Pearson_r": "Pearson r"},
+        labels={"label": "", "Pearson_r": "r (Pearson)"},
     )
     fig_corr.add_hline(y=0, line_dash="dot", line_color="#6B7280")
     fig_corr.update_xaxes(tickangle=-35)
@@ -931,7 +1099,7 @@ def render_agreement_overview_charts(stats_df: pd.DataFrame) -> None:
         y="MAE",
         color="alat",
         title="MAE per Parameter-Alat",
-        labels={"label": "", "MAE": "MAE"},
+        labels={"label": "", "MAE": "MAE (galat absolut rata-rata)"},
     )
     fig_error.update_xaxes(tickangle=-35)
     right.plotly_chart(fig_error, width="stretch")
@@ -968,15 +1136,15 @@ def render_problem_map() -> None:
                     "Rumusan masalah": "Korelasi alat portabel dan laboratorium",
                     "Pertanyaan analisis": "Seberapa dekat bacaan portabel dengan hasil laboratorium?",
                     "Data yang dipakai": "Pasangan nilai lab dan portabel untuk pH, N, P, K, dan kelembapan",
-                    "Metode": "Pearson, Spearman, regresi linear, MAE, RMSE",
-                    "Output yang dibaca": "Kekuatan hubungan, besar galat, bias alat, dan kesesuaian alat",
+                    "Metode": "r Pearson, ρ Spearman, regresi linear ŷ = β₀ + β₁x, MAE, RMSE",
+                    "Output yang dibaca": "r, ρ, β₀, β₁, R², galat, bias alat, dan kesesuaian alat",
                 },
                 {
                     "Rumusan masalah": "Pengaruh tekstur dan C-organik terhadap kinerja alat",
-                    "Pertanyaan analisis": "Faktor tanah apa yang dapat menjelaskan bacaan alat portabel?",
-                    "Data yang dipakai": "Y = nilai portabel; X = lab, tekstur, C-organik, kelembapan, SPT, vegetasi, dan faktor tanah",
-                    "Metode": "Regresi berganda",
-                    "Output yang dibaca": "Koefisien prediktor, R2, RMSE, prediksi alat, dan residual",
+                    "Pertanyaan analisis": "Seberapa baik bacaan alat portabel dan faktor tanah dapat menduga hasil laboratorium?",
+                    "Data yang dipakai": "Y (respons) = nilai laboratorium; Xⱼ (prediktor) = bacaan portabel, tekstur, C-organik, SPT, vegetasi, dan faktor tanah",
+                    "Metode": "Regresi berganda Ŷ = β₀ + β₁X₁ + ... + βₚXₚ + ε",
+                    "Output yang dibaca": "βⱼ, Xⱼ, R², RMSE, prediksi lab, dan e = Y_lab - Ŷ_lab",
                 },
                 {
                     "Rumusan masalah": "Rekomendasi teknis penggunaan alat",
@@ -1057,7 +1225,7 @@ def render_overview(data: dict[str, pd.DataFrame]) -> None:
         "rekomendasi",
         "persamaan_kalibrasi_lab",
     ]
-    st.dataframe(clean_table_for_display(matrix[cols]), width="stretch", hide_index=True)
+    st.dataframe(academic_display_table(matrix, cols), width="stretch", hide_index=True)
 
 
 def render_correlation(data: dict[str, pd.DataFrame]) -> None:
@@ -1065,7 +1233,7 @@ def render_correlation(data: dict[str, pd.DataFrame]) -> None:
     stats_df = all_agreement_stats(clean)
 
     st.subheader("Korelasi dan Kesesuaian Alat")
-    st.caption("Bias = nilai portabel - nilai laboratorium. Persamaan kalibrasi memperkirakan nilai lab dari bacaan portabel.")
+    st.caption("e = y_portabel - y_lab (bias). Persamaan kalibrasi memperkirakan ŷ_lab dari x_portabel.")
     render_agreement_overview_charts(stats_df)
 
     parameter_options = stats_df["parameter"].dropna().unique().tolist()
@@ -1083,23 +1251,27 @@ def render_correlation(data: dict[str, pd.DataFrame]) -> None:
 
     stats_row = stats_df[(stats_df["parameter"].eq(parameter)) & (stats_df["alat"].eq(device))].iloc[0]
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Pearson r", f"{stats_row['Pearson_r']:.3f}", f"p={format_p(stats_row['Pearson_p'])}")
-    m2.metric("Spearman rho", f"{stats_row['Spearman_rho']:.3f}", f"p={format_p(stats_row['Spearman_p'])}")
-    m3.metric("MAE", f"{stats_row['MAE']:.3f} {spec.unit}")
-    m4.metric("RMSE", f"{stats_row['RMSE']:.3f} {spec.unit}")
+    m1.metric("r (Pearson)", f"{stats_row['Pearson_r']:.3f}", f"p_r={format_p(stats_row['Pearson_p'])}")
+    m2.metric("ρ (Spearman)", f"{stats_row['Spearman_rho']:.3f}", f"p_ρ={format_p(stats_row['Spearman_p'])}")
+    m3.metric("MAE (galat absolut)", f"{stats_row['MAE']:.3f} {spec.unit}")
+    m4.metric("RMSE (akar galat kuadrat)", f"{stats_row['RMSE']:.3f} {spec.unit}")
 
     st.info(calibration_text(stats_row["intercept_portable_to_lab"], stats_row["slope_portable_to_lab"]))
+    st.latex(LINEAR_REGRESSION_LATEX)
 
     fig = px.scatter(
         pair_source,
-        x="lab_value",
-        y="portable_value",
+        x="portable_value",
+        y="lab_value",
         color="SPT",
         hover_data=["unit_lahan", "vegetasi", "satuan_tanah", "galat"],
-        labels={"lab_value": f"{parameter} lab ({spec.unit})", "portable_value": f"{parameter} {device} ({spec.unit})"},
-        title=f"{parameter}: Lab vs {device}",
+        labels={
+            "portable_value": f"x_portabel ({parameter} {device}, {spec.unit})",
+            "lab_value": f"y_lab ({parameter} lab, {spec.unit})",
+        },
+        title=f"{parameter}: Kalibrasi {device} ke Lab",
     )
-    add_regression_line(fig, pair_source, "lab_value", "portable_value")
+    add_regression_line(fig, pair_source, "portable_value", "lab_value", name="Kalibrasi linear")
     st.plotly_chart(fig, width="stretch")
 
     fig_error = px.histogram(
@@ -1107,7 +1279,7 @@ def render_correlation(data: dict[str, pd.DataFrame]) -> None:
         x="galat",
         nbins=14,
         color="SPT",
-        labels={"galat": f"Galat ({spec.unit})"},
+        labels={"galat": f"e (galat, {spec.unit})"},
         title=f"Sebaran galat {parameter} - {device}",
     )
     st.plotly_chart(fig_error, width="stretch")
@@ -1120,7 +1292,7 @@ def render_correlation(data: dict[str, pd.DataFrame]) -> None:
         points="all",
         hover_data=["unit_lahan", "vegetasi", "satuan_tanah"],
         title=f"Galat {parameter} - {device} per SPT",
-        labels={"galat": f"Galat ({spec.unit})", "SPT": "SPT"},
+        labels={"galat": f"e (galat, {spec.unit})", "SPT": "SPT"},
     )
     st.plotly_chart(fig_box, width="stretch")
 
@@ -1142,19 +1314,23 @@ def render_correlation(data: dict[str, pd.DataFrame]) -> None:
         "intercept_portable_to_lab",
         "slope_portable_to_lab",
     ]
-    st.dataframe(clean_table_for_display(stats_df[show_cols]), width="stretch", hide_index=True)
+    st.dataframe(academic_display_table(stats_df, show_cols, include_linear_equation=True), width="stretch", hide_index=True)
 
 
 def render_factor_analysis(data: dict[str, pd.DataFrame]) -> None:
     clean = data["clean"]
-    st.subheader("Regresi Berganda untuk Menduga Nilai Alat Portabel")
-    st.caption("Di halaman ini variabel Y adalah bacaan alat portabel. Prediktor X dapat berupa hasil lab, tekstur, C-organik, kelembapan, dan faktor tanah.")
+    st.subheader("Regresi Berganda untuk Menduga Nilai Laboratorium")
+    st.caption(
+        "Y (variabel respons) adalah hasil laboratorium. Xⱼ (prediktor) adalah bacaan alat portabel, "
+        "dengan faktor tanah opsional sebagai variabel koreksi. Galat/residual dihitung setelah prediksi, bukan dipakai sebagai prediktor."
+    )
 
-    target_labels = [item["label"] for item in REGRESSION_TARGETS if item["target"] in clean.columns]
-    target_label = stable_selectbox(st, "Y yang diduga", target_labels, key="regression_target")
-    target_spec = next(item for item in REGRESSION_TARGETS if item["label"] == target_label)
+    target_labels = [item["label"] for item in LAB_REGRESSION_TARGETS if item["target"] in clean.columns]
+    target_label = stable_selectbox(st, "Y lab yang diduga", target_labels, key="regression_target")
+    target_spec = next(item for item in LAB_REGRESSION_TARGETS if item["label"] == target_label)
 
     available_numeric = [col for col in NUMERIC_PREDICTORS if col in clean.columns and col != target_spec["target"]]
+    default_numeric = [col for col in target_spec["default_predictors"] if col in available_numeric]
     available_category = [col for col in CATEGORY_PREDICTORS if col in clean.columns]
 
     left, right = st.columns([2, 1])
@@ -1163,7 +1339,7 @@ def render_factor_analysis(data: dict[str, pd.DataFrame]) -> None:
         "Prediktor numerik X",
         available_numeric,
         key="regression_numeric_predictors",
-        default=available_numeric,
+        default=default_numeric,
     )
     selected_category = stable_multiselect(
         right,
@@ -1197,16 +1373,17 @@ def render_factor_analysis(data: dict[str, pd.DataFrame]) -> None:
     else:
         m1, m2, m3, m4, m5 = st.columns(5)
         m1.metric("n", int(summary["n"]))
-        m2.metric("Prediktor", int(summary["jumlah_prediktor"]))
-        m3.metric("R2", f"{summary['R2']:.3f}")
-        m4.metric("Adj. R2", f"{summary['Adj_R2']:.3f}")
-        m5.metric("RMSE", f"{summary['RMSE']:.3f} {target_spec['unit']}")
+        m2.metric("p (prediktor)", int(summary["jumlah_prediktor"]))
+        m3.metric("R²", f"{summary['R2']:.3f}")
+        m4.metric("R²_adj", f"{summary['Adj_R2']:.3f}")
+        m5.metric("RMSE (akar galat kuadrat)", f"{summary['RMSE']:.3f} {target_spec['unit']}")
 
-        st.info(f"Model: {target_spec['label']} sebagai Y. {summary['formula']}.")
+        st.info(f"{summary['formula']} ({target_spec['label']} sebagai Y lab; bacaan portabel sebagai prediktor utama).")
+        st.latex(MULTIPLE_REGRESSION_LATEX)
         st.caption(
-            "Residual = nilai aktual alat portabel - nilai prediksi model. "
-            "Residual positif berarti alat membaca lebih tinggi daripada prediksi model; residual negatif berarti lebih rendah. "
-            "Semakin dekat residual ke 0, semakin baik prediksi model pada sampel tersebut."
+            "e = Y_lab - Ŷ_lab (residual) = hasil lab aktual - hasil lab prediksi model. "
+            "Residual positif berarti hasil lab aktual lebih tinggi daripada prediksi model; residual negatif berarti lebih rendah. "
+            "Semakin dekat residual ke 0, semakin baik model mengkalibrasi bacaan portabel pada sampel tersebut."
         )
 
         coef_plot = coef[coef["prediktor"].ne("intercept")].copy()
@@ -1216,8 +1393,8 @@ def render_factor_analysis(data: dict[str, pd.DataFrame]) -> None:
                 x="koefisien",
                 y="prediktor",
                 orientation="h",
-                title=f"Koefisien Regresi Berganda untuk {target_spec['label']}",
-                labels={"koefisien": "Koefisien", "prediktor": "Prediktor"},
+                title=f"βⱼ: Koefisien Regresi Berganda untuk {target_spec['label']}",
+                labels={"koefisien": "β̂ⱼ (estimasi koefisien)", "prediktor": "Xⱼ (prediktor asli)"},
             )
             fig_coef.add_vline(x=0, line_dash="dot", line_color="#6B7280")
             fig_coef.update_layout(yaxis={"categoryorder": "total ascending"})
@@ -1229,8 +1406,8 @@ def render_factor_analysis(data: dict[str, pd.DataFrame]) -> None:
             y="prediksi",
             color="SPT",
             hover_data=["unit_lahan", "vegetasi", "residual"],
-            title=f"Aktual vs Prediksi: {target_spec['label']}",
-            labels={target_spec["target"]: f"Y aktual ({target_spec['unit']})", "prediksi": f"Y prediksi ({target_spec['unit']})"},
+            title=f"Y_lab vs Ŷ_lab: Aktual dan Prediksi {target_spec['label']}",
+            labels={target_spec["target"]: f"Y_lab (aktual, {target_spec['unit']})", "prediksi": f"Ŷ_lab (prediksi, {target_spec['unit']})"},
         )
         min_val = float(min(prediction[target_spec["target"]].min(), prediction["prediksi"].min()))
         max_val = float(max(prediction[target_spec["target"]].max(), prediction["prediksi"].max()))
@@ -1249,25 +1426,28 @@ def render_factor_analysis(data: dict[str, pd.DataFrame]) -> None:
             y="residual",
             color="SPT",
             hover_data=["unit_lahan", target_spec["target"], "prediksi", "abs_residual"],
-            title=f"Residual Model: {target_spec['label']}",
-            labels={"residual": f"Residual ({target_spec['unit']})", "vegetasi": "Vegetasi"},
+            title=f"e = Y_lab - Ŷ_lab: Residual Model {target_spec['label']}",
+            labels={"residual": f"e (residual, {target_spec['unit']})", "vegetasi": "Vegetasi"},
         )
         fig_resid.add_hline(y=0, line_dash="dot", line_color="#6B7280")
         fig_resid.update_xaxes(tickangle=-35)
         st.plotly_chart(fig_resid, width="stretch")
 
         st.markdown("#### Koefisien Model")
-        st.dataframe(clean_table_for_display(coef), width="stretch", hide_index=True)
+        st.dataframe(coefficient_display_table(coef), width="stretch", hide_index=True)
 
         st.markdown("#### Data Aktual, Prediksi, dan Residual")
-        st.dataframe(clean_table_for_display(prediction.sort_values("abs_residual", ascending=False)), width="stretch", hide_index=True)
+        prediction_display = prediction.sort_values("abs_residual", ascending=False).rename(
+            columns={target_spec["target"]: f"Y_lab (aktual {target_spec['label']})"}
+        )
+        st.dataframe(academic_display_table(prediction_display), width="stretch", hide_index=True)
 
-    st.markdown("#### Ringkasan Regresi Semua Y Portabel")
+    st.markdown("#### Ringkasan Regresi Semua Y Lab")
     rows = []
-    for item in REGRESSION_TARGETS:
+    for item in LAB_REGRESSION_TARGETS:
         if item["target"] not in clean.columns:
             continue
-        predictors = [col for col in NUMERIC_PREDICTORS if col in clean.columns and col != item["target"]]
+        predictors = [col for col in item["default_predictors"] if col in clean.columns]
         _, item_summary, _ = regression_with_prediction(clean, item["target"], predictors, [])
         if "R2" not in item_summary:
             rows.append({"Y": item["label"], "catatan": item_summary.get("catatan", "-")})
@@ -1285,15 +1465,15 @@ def render_factor_analysis(data: dict[str, pd.DataFrame]) -> None:
             }
         )
     summary_df = pd.DataFrame(rows)
-    st.dataframe(clean_table_for_display(summary_df), width="stretch", hide_index=True)
+    st.dataframe(academic_display_table(summary_df), width="stretch", hide_index=True)
     if "R2" in summary_df.columns:
         fig_all = px.bar(
             summary_df.dropna(subset=["R2"]),
             x="Y",
             y="R2",
             color="Y",
-            title="Perbandingan R2 Regresi untuk Semua Bacaan Portabel",
-            labels={"Y": "Target Y", "R2": "R2"},
+            title="Perbandingan R² Regresi untuk Semua Nilai Laboratorium",
+            labels={"Y": "Y_lab (target respons)", "R2": "R²"},
         )
         fig_all.update_xaxes(tickangle=-30)
         st.plotly_chart(fig_all, width="stretch")
@@ -1328,7 +1508,7 @@ def render_recommendations(data: dict[str, pd.DataFrame]) -> None:
         color="rekomendasi",
         hover_data=["parameter", "alat", "bias", "MAE", "persamaan_kalibrasi_lab"],
         title="Trade-off Korelasi dan RMSE untuk Menilai Kelayakan",
-        labels={"Pearson_r": "Pearson r", "RMSE": "RMSE"},
+        labels={"Pearson_r": "r (Pearson)", "RMSE": "RMSE"},
     )
     fig_tradeoff.add_hline(y=0, line_dash="dot", line_color="#6B7280")
     st.plotly_chart(fig_tradeoff, width="stretch")
@@ -1347,12 +1527,12 @@ def render_recommendations(data: dict[str, pd.DataFrame]) -> None:
         "Spearman_rho",
         "persamaan_kalibrasi_lab",
     ]
-    st.dataframe(clean_table_for_display(matrix[display_cols]), width="stretch", hide_index=True)
+    st.dataframe(academic_display_table(matrix, display_cols), width="stretch", hide_index=True)
 
     best = matrix.sort_values("skor_kelayakan", ascending=False).groupby("parameter", as_index=False).first()
     st.markdown("#### Alat yang Paling Disarankan per Parameter")
     st.dataframe(
-        clean_table_for_display(best[["parameter", "alat", "skor_kelayakan", "rekomendasi", "persamaan_kalibrasi_lab"]]),
+        academic_display_table(best, ["parameter", "alat", "skor_kelayakan", "rekomendasi", "persamaan_kalibrasi_lab"]),
         width="stretch",
         hide_index=True,
     )
