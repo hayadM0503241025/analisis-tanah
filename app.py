@@ -98,6 +98,22 @@ SOIL_NUMERIC_PREDICTORS = [
     "C_organik_pct",
 ]
 
+DEVICE_NUMERIC_PREDICTORS = {
+    "Portabel 1": [
+        "pH_portabel_1",
+        "N_portabel_1",
+        "P_portabel_1",
+        "K_portabel_1",
+    ],
+    "Portabel 2": [
+        "pH_portabel_2",
+        "N_portabel_2",
+        "P_portabel_2",
+        "K_portabel_2",
+        "kadar_air_portabel_pct",
+    ],
+}
+
 NUMERIC_PREDICTORS = [
     *PORTABLE_PREDICTORS,
     *SOIL_NUMERIC_PREDICTORS,
@@ -135,6 +151,119 @@ COMPARISONS = [
     ComparisonSpec("K", "K_lab", "K_portabel_1", "Portabel 1", "ppm"),
     ComparisonSpec("K", "K_lab", "K_portabel_2", "Portabel 2", "ppm"),
     ComparisonSpec("Kelembapan", "kadar_air_lab_pct", "kadar_air_portabel_pct", "Portabel 2", "%"),
+]
+
+ERROR_REGRESSION_TARGETS = [
+    {
+        "label": "Selisih pH - Portabel 1",
+        "parameter": "pH",
+        "device": "Portabel 1",
+        "target": "pH_galat_1",
+        "lab_col": "pH_lab",
+        "portable_col": "pH_portabel_1",
+        "unit": "pH",
+        "default_predictors": ["pH_portabel_1"],
+    },
+    {
+        "label": "Selisih pH - Portabel 2",
+        "parameter": "pH",
+        "device": "Portabel 2",
+        "target": "pH_galat_2",
+        "lab_col": "pH_lab",
+        "portable_col": "pH_portabel_2",
+        "unit": "pH",
+        "default_predictors": ["pH_portabel_2"],
+    },
+    {
+        "label": "Selisih N-NH4 - Portabel 1",
+        "parameter": "N-NH4",
+        "device": "Portabel 1",
+        "target": "N_galat_1_vs_NH4",
+        "lab_col": "NH4_N_lab",
+        "portable_col": "N_portabel_1",
+        "unit": "ppm",
+        "default_predictors": ["N_portabel_1"],
+    },
+    {
+        "label": "Selisih N-NH4 - Portabel 2",
+        "parameter": "N-NH4",
+        "device": "Portabel 2",
+        "target": "N_galat_2_vs_NH4",
+        "lab_col": "NH4_N_lab",
+        "portable_col": "N_portabel_2",
+        "unit": "ppm",
+        "default_predictors": ["N_portabel_2"],
+    },
+    {
+        "label": "Selisih N-NO3 - Portabel 1",
+        "parameter": "N-NO3",
+        "device": "Portabel 1",
+        "target": "N_galat_1_vs_NO3",
+        "lab_col": "NO3_N_lab",
+        "portable_col": "N_portabel_1",
+        "unit": "ppm",
+        "default_predictors": ["N_portabel_1"],
+    },
+    {
+        "label": "Selisih N-NO3 - Portabel 2",
+        "parameter": "N-NO3",
+        "device": "Portabel 2",
+        "target": "N_galat_2_vs_NO3",
+        "lab_col": "NO3_N_lab",
+        "portable_col": "N_portabel_2",
+        "unit": "ppm",
+        "default_predictors": ["N_portabel_2"],
+    },
+    {
+        "label": "Selisih P - Portabel 1",
+        "parameter": "P",
+        "device": "Portabel 1",
+        "target": "P_galat_1",
+        "lab_col": "P_lab",
+        "portable_col": "P_portabel_1",
+        "unit": "ppm",
+        "default_predictors": ["P_portabel_1"],
+    },
+    {
+        "label": "Selisih P - Portabel 2",
+        "parameter": "P",
+        "device": "Portabel 2",
+        "target": "P_galat_2",
+        "lab_col": "P_lab",
+        "portable_col": "P_portabel_2",
+        "unit": "ppm",
+        "default_predictors": ["P_portabel_2"],
+    },
+    {
+        "label": "Selisih K - Portabel 1",
+        "parameter": "K",
+        "device": "Portabel 1",
+        "target": "K_galat_1",
+        "lab_col": "K_lab",
+        "portable_col": "K_portabel_1",
+        "unit": "ppm",
+        "default_predictors": ["K_portabel_1"],
+    },
+    {
+        "label": "Selisih K - Portabel 2",
+        "parameter": "K",
+        "device": "Portabel 2",
+        "target": "K_galat_2",
+        "lab_col": "K_lab",
+        "portable_col": "K_portabel_2",
+        "unit": "ppm",
+        "default_predictors": ["K_portabel_2"],
+    },
+    {
+        "label": "Selisih Kelembapan - Portabel 2",
+        "parameter": "Kelembapan",
+        "device": "Portabel 2",
+        "target": "kadar_air_galat",
+        "lab_col": "kadar_air_lab_pct",
+        "portable_col": "kadar_air_portabel_pct",
+        "unit": "%",
+        "default_predictors": ["kadar_air_portabel_pct"],
+    },
 ]
 
 
@@ -296,6 +425,17 @@ def summarize_replicates(replicates: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(records)
 
 
+def add_error_regression_targets(clean: pd.DataFrame) -> pd.DataFrame:
+    out = clean.copy()
+    for target_spec in ERROR_REGRESSION_TARGETS:
+        lab_col = target_spec["lab_col"]
+        portable_col = target_spec["portable_col"]
+        target_col = target_spec["target"]
+        if lab_col in out.columns and portable_col in out.columns:
+            out[target_col] = to_number(out[portable_col]) - to_number(out[lab_col])
+    return out
+
+
 @st.cache_data(show_spinner=False)
 def load_data(file_obj: str | Path | object) -> dict[str, pd.DataFrame]:
     sheets = read_raw_excel(file_obj)
@@ -417,6 +557,7 @@ def load_data(file_obj: str | Path | object) -> dict[str, pd.DataFrame]:
         on=["SPT", "unit_lahan", "vegetasi"],
         how="outer",
     )
+    clean = add_error_regression_targets(clean)
 
     errors = make_error_table(clean)
     return {
@@ -984,6 +1125,15 @@ def coefficient_display_table(coef: pd.DataFrame) -> pd.DataFrame:
     return academic_display_table(coef, display_cols)
 
 
+def error_predictor_options(target_spec: dict[str, object], clean: pd.DataFrame) -> list[str]:
+    device_predictors = DEVICE_NUMERIC_PREDICTORS.get(str(target_spec["device"]), [])
+    options = [
+        *device_predictors,
+        *SOIL_NUMERIC_PREDICTORS,
+    ]
+    return [col for col in dict.fromkeys(options) if col in clean.columns and col != target_spec["target"]]
+
+
 def stable_selectbox(container, label: str, options: list[str], key: str, index: int = 0):
     if not options:
         return None
@@ -1141,10 +1291,10 @@ def render_problem_map() -> None:
                 },
                 {
                     "Rumusan masalah": "Pengaruh tekstur dan C-organik terhadap kinerja alat",
-                    "Pertanyaan analisis": "Seberapa baik bacaan alat portabel dan faktor tanah dapat menduga hasil laboratorium?",
-                    "Data yang dipakai": "Y (respons) = nilai laboratorium; Xⱼ (prediktor) = bacaan portabel, tekstur, C-organik, SPT, vegetasi, dan faktor tanah",
+                    "Pertanyaan analisis": "Seberapa baik bacaan alat portabel dan faktor tanah dapat menduga selisih alat-lab?",
+                    "Data yang dipakai": "Y (respons) = galat portabel - lab sesuai alat ukur; Xⱼ (prediktor) = bacaan portabel terpilih, tekstur, C-organik, SPT, vegetasi, dan faktor tanah",
                     "Metode": "Regresi berganda Ŷ = β₀ + β₁X₁ + ... + βₚXₚ + ε",
-                    "Output yang dibaca": "βⱼ, Xⱼ, R², RMSE, prediksi lab, dan e = Y_lab - Ŷ_lab",
+                    "Output yang dibaca": "βⱼ, Xⱼ, R², RMSE, prediksi galat, dan residual model selisih",
                 },
                 {
                     "Rumusan masalah": "Rekomendasi teknis penggunaan alat",
@@ -1319,17 +1469,27 @@ def render_correlation(data: dict[str, pd.DataFrame]) -> None:
 
 def render_factor_analysis(data: dict[str, pd.DataFrame]) -> None:
     clean = data["clean"]
-    st.subheader("Regresi Berganda untuk Menduga Nilai Laboratorium")
+    st.subheader("Regresi Berganda untuk Menduga Selisih Alat-Lab")
     st.caption(
-        "Y (variabel respons) adalah hasil laboratorium. Xⱼ (prediktor) adalah bacaan alat portabel, "
-        "dengan faktor tanah opsional sebagai variabel koreksi. Galat/residual dihitung setelah prediksi, bukan dipakai sebagai prediktor."
+        "Y (variabel respons) adalah selisih/galat alat portabel terhadap hasil laboratorium (portabel - lab). "
+        "X adalah bacaan alat portabel yang dipilih, dengan faktor tanah opsional sebagai variabel koreksi."
     )
 
-    target_labels = [item["label"] for item in LAB_REGRESSION_TARGETS if item["target"] in clean.columns]
-    target_label = stable_selectbox(st, "Y lab yang diduga", target_labels, key="regression_target")
-    target_spec = next(item for item in LAB_REGRESSION_TARGETS if item["label"] == target_label)
+    available_targets = [item for item in ERROR_REGRESSION_TARGETS if item["target"] in clean.columns]
+    if not available_targets:
+        st.warning("Kolom selisih alat-lab belum tersedia untuk regresi.")
+        return
 
-    available_numeric = [col for col in NUMERIC_PREDICTORS if col in clean.columns and col != target_spec["target"]]
+    left, right = st.columns([1, 2])
+    device_options = list(dict.fromkeys(item["device"] for item in available_targets))
+    selected_device = stable_selectbox(left, "Alat ukur", device_options, key="regression_device")
+    target_labels = [item["label"] for item in available_targets if item["device"] == selected_device]
+    target_label = stable_selectbox(right, "Y selisih yang diduga", target_labels, key="regression_target")
+    target_spec = next(
+        item for item in available_targets if item["label"] == target_label and item["device"] == selected_device
+    )
+
+    available_numeric = error_predictor_options(target_spec, clean)
     default_numeric = [col for col in target_spec["default_predictors"] if col in available_numeric]
     available_category = [col for col in CATEGORY_PREDICTORS if col in clean.columns]
 
@@ -1338,7 +1498,7 @@ def render_factor_analysis(data: dict[str, pd.DataFrame]) -> None:
         left,
         "Prediktor numerik X",
         available_numeric,
-        key="regression_numeric_predictors",
+        key=f"regression_numeric_predictors_{target_spec['target']}",
         default=default_numeric,
     )
     selected_category = stable_multiselect(
@@ -1378,12 +1538,12 @@ def render_factor_analysis(data: dict[str, pd.DataFrame]) -> None:
         m4.metric("R²_adj", f"{summary['Adj_R2']:.3f}")
         m5.metric("RMSE (akar galat kuadrat)", f"{summary['RMSE']:.3f} {target_spec['unit']}")
 
-        st.info(f"{summary['formula']} ({target_spec['label']} sebagai Y lab; bacaan portabel sebagai prediktor utama).")
+        st.info(f"{summary['formula']} ({target_spec['label']} sebagai Y selisih; {selected_device} sebagai alat ukur).")
         st.latex(MULTIPLE_REGRESSION_LATEX)
         st.caption(
-            "e = Y_lab - Ŷ_lab (residual) = hasil lab aktual - hasil lab prediksi model. "
-            "Residual positif berarti hasil lab aktual lebih tinggi daripada prediksi model; residual negatif berarti lebih rendah. "
-            "Semakin dekat residual ke 0, semakin baik model mengkalibrasi bacaan portabel pada sampel tersebut."
+            "Residual model = Y_galat aktual - Y_galat prediksi. "
+            "Residual positif berarti selisih aktual lebih besar daripada prediksi model; residual negatif berarti lebih kecil. "
+            "Semakin dekat residual ke 0, semakin baik model membaca pola selisih alat-lab."
         )
 
         coef_plot = coef[coef["prediktor"].ne("intercept")].copy()
@@ -1406,8 +1566,11 @@ def render_factor_analysis(data: dict[str, pd.DataFrame]) -> None:
             y="prediksi",
             color="SPT",
             hover_data=["unit_lahan", "vegetasi", "residual"],
-            title=f"Y_lab vs Ŷ_lab: Aktual dan Prediksi {target_spec['label']}",
-            labels={target_spec["target"]: f"Y_lab (aktual, {target_spec['unit']})", "prediksi": f"Ŷ_lab (prediksi, {target_spec['unit']})"},
+            title=f"Y_galat Aktual vs Prediksi: {target_spec['label']}",
+            labels={
+                target_spec["target"]: f"Y_galat aktual ({target_spec['unit']})",
+                "prediksi": f"Y_galat prediksi ({target_spec['unit']})",
+            },
         )
         min_val = float(min(prediction[target_spec["target"]].min(), prediction["prediksi"].min()))
         max_val = float(max(prediction[target_spec["target"]].max(), prediction["prediksi"].max()))
@@ -1426,7 +1589,7 @@ def render_factor_analysis(data: dict[str, pd.DataFrame]) -> None:
             y="residual",
             color="SPT",
             hover_data=["unit_lahan", target_spec["target"], "prediksi", "abs_residual"],
-            title=f"e = Y_lab - Ŷ_lab: Residual Model {target_spec['label']}",
+            title=f"Residual Model Selisih: {target_spec['label']}",
             labels={"residual": f"e (residual, {target_spec['unit']})", "vegetasi": "Vegetasi"},
         )
         fig_resid.add_hline(y=0, line_dash="dot", line_color="#6B7280")
@@ -1436,25 +1599,26 @@ def render_factor_analysis(data: dict[str, pd.DataFrame]) -> None:
         st.markdown("#### Koefisien Model")
         st.dataframe(coefficient_display_table(coef), width="stretch", hide_index=True)
 
-        st.markdown("#### Data Aktual, Prediksi, dan Residual")
+        st.markdown("#### Data Selisih Aktual, Prediksi, dan Residual")
         prediction_display = prediction.sort_values("abs_residual", ascending=False).rename(
-            columns={target_spec["target"]: f"Y_lab (aktual {target_spec['label']})"}
+            columns={target_spec["target"]: f"Y_galat aktual ({target_spec['label']})"}
         )
         st.dataframe(academic_display_table(prediction_display), width="stretch", hide_index=True)
 
-    st.markdown("#### Ringkasan Regresi Semua Y Lab")
+    st.markdown("#### Ringkasan Regresi Semua Y Selisih")
     rows = []
-    for item in LAB_REGRESSION_TARGETS:
+    for item in ERROR_REGRESSION_TARGETS:
         if item["target"] not in clean.columns:
             continue
         predictors = [col for col in item["default_predictors"] if col in clean.columns]
         _, item_summary, _ = regression_with_prediction(clean, item["target"], predictors, [])
         if "R2" not in item_summary:
-            rows.append({"Y": item["label"], "catatan": item_summary.get("catatan", "-")})
+            rows.append({"Y": item["label"], "alat": item["device"], "catatan": item_summary.get("catatan", "-")})
             continue
         rows.append(
             {
                 "Y": item["label"],
+                "alat": item["device"],
                 "n": item_summary["n"],
                 "jumlah_prediktor": item_summary["jumlah_prediktor"],
                 "R2": item_summary["R2"],
@@ -1472,8 +1636,8 @@ def render_factor_analysis(data: dict[str, pd.DataFrame]) -> None:
             x="Y",
             y="R2",
             color="Y",
-            title="Perbandingan R² Regresi untuk Semua Nilai Laboratorium",
-            labels={"Y": "Y_lab (target respons)", "R2": "R²"},
+            title="Perbandingan R² Regresi untuk Semua Selisih Alat-Lab",
+            labels={"Y": "Y_galat (target respons)", "R2": "R²"},
         )
         fig_all.update_xaxes(tickangle=-30)
         st.plotly_chart(fig_all, width="stretch")
